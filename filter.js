@@ -1,4 +1,5 @@
 Filter=function(arr,fun,criteria,thisarg) {
+    thisarg=thisarg||null;
     var arrInd;
     var result=[];
     for(arrInd in arr) {
