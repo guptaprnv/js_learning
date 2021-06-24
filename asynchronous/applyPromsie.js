@@ -16,9 +16,8 @@ function promise(callback) {
           continue;
         }
         this.value = value;
-      }
-      else {
-        if(this.state === rejected) {
+      } else {
+        if (this.state === rejected) {
           let value = nextthen.rejected.call(this, this.value);
           this.value = value;
         }
@@ -48,7 +47,7 @@ function promise(callback) {
   const Catch = function (handleRejected) {
     this.queue.push({
       name: "catch",
-      rejected: handleRejected
+      rejected: handleRejected,
     });
     return this;
   };
