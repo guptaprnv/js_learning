@@ -1,4 +1,4 @@
-async function makehandler(promiseArray) {
+async function promiseHandler(promiseArray) {
   for (ind in promiseArray) {
     promiseArray[ind] = promiseArray[ind].catch((error) => {
       return error;
@@ -21,4 +21,4 @@ let promise2 = new Promise((resolve, reject) => {
     reject("error 404");
   }, 2000);
 });
-makehandler([promise1, promise2]);
+promiseHandler([promise1, promise2]);

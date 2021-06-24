@@ -1,57 +1,138 @@
-function functionForResolve(value, response, error) {
-    return new Promise((resolve,reject) => {
-        setTimeout(() => {
-            response.push(value);
-            error.push(undefined);
-            resolve(1);
-        },6000);
-    })
-}
-function functionForReject(value, response, error) {
-    return new Promise((resolve,reject) => {
-        setTimeout(() => {
-            error.push(value);
-            response.push(undefined);
-            resolve(1);
-        },2000);
-    })
-}
-async function handlePromise(...promises) {
-  let response = [];
-  let error = [];
-  for (let ind in promises) {
-    await promises[ind]
-      .then((value) => functionForResolve(value, response, error))
-      .catch((value) => functionForReject(value, response, error));
-  }
-  
-  return new Promise((resolve,reject) => {
-      resolve([response, error]);
-  });
-}
-
-async function makehandler() {
-  let promise1 = new Promise((resolve, reject) => {
-    setTimeout(() => {
-      resolve(2);
-    }, 3000);
-  });
-  let promise2 = new Promise((resolve, reject) => {
-    setTimeout(() => {
-      reject("error 404");
-    }, 6000);
-  });
-
-  console.log(1);
-  const result = await handlePromise(promise1, promise2);
-  //console.log(result);
-  for (let indresult = 0; indresult < result[0].length; indresult++) {
-    if (result[0][indresult] !== undefined) {
-      console.log("promise" + indresult + "response: " + result[0][indresult]);
-    } else {
-      console.log("promise" + indresult + "rejected: " + result[1][indresult]);
+function getThen(value) {
+  var t = typeof value;
+  if (value && (t === "object" || t === "function")) {
+    var then = value.then;
+    if (typeof then === "function") {
+      return then;
     }
   }
+  return null;
 }
 
-makehandler();
+function doResolve(fn, onFulfilled, onRejected) {
+  var done = false;
+  try {
+    fn(
+      function (value) {
+        if (done) return;
+        done = true;
+        onFulfilled(value);
+      },
+      function (reason) {
+        if (done) return;
+        done = true;
+        onRejected(reason);
+      }
+    );
+  } catch (ex) {
+    if (done) return;
+    done = true;
+    onRejected(ex);
+  }
+}
+
+var PENDING = 0;
+var FULFILLED = 1;
+var REJECTED = 2;
+
+function Promise(fn) {
+  // store state which can be PENDING, FULFILLED or REJECTED
+  var state = PENDING;
+
+  // store value once FULFILLED or REJECTED
+  var value = null;
+
+  // store sucess & failure handlers
+  var handlers = [];
+
+  function fulfill(result) {
+    state = FULFILLED;
+    value = result;
+    handlers.forEach(handle);
+    handlers = null;
+  }
+
+  function reject(error) {
+    state = REJECTED;
+    value = error;
+    handlers.forEach(handle);
+    handlers = null;
+  }
+
+  function resolve(result) {
+    try {
+      var then = getThen(result);
+      if (then) {
+        doResolve(then.bind(result), resolve, reject);
+        return;
+      }
+      fulfill(result);
+    } catch (e) {
+      reject(e);
+    }
+  }
+
+  function handle(handler) {
+    if (state === PENDING) {
+      handlers.push(handler);
+    } else {
+      if (state === FULFILLED && typeof handler.onFulfilled === "function") {
+        handler.onFulfilled(value);
+      }
+      if (state === REJECTED && typeof handler.onRejected === "function") {
+        handler.onRejected(value);
+      }
+    }
+  }
+
+  this.done = function (onFulfilled, onRejected) {
+    // ensure we are always asynchronous
+    setTimeout(function () {
+      handle({
+        onFulfilled: onFulfilled,
+        onRejected: onRejected,
+      });
+    }, 0);
+  };
+
+  this.then = function (onFulfilled, onRejected) {
+    var self = this;
+    return new Promise(function (resolve, reject) {
+      return self.done(
+        function (result) {
+          if (typeof onFulfilled === "function") {
+            try {
+              return resolve(onFulfilled(result));
+            } catch (ex) {
+              return reject(ex);
+            }
+          } else {
+            return resolve(result);
+          }
+        },
+        function (error) {
+          if (typeof onRejected === "function") {
+            try {
+              return resolve(onRejected(error));
+            } catch (ex) {
+              return reject(ex);
+            }
+          } else {
+            return reject(error);
+          }
+        }
+      );
+    });
+  };
+  
+  doResolve(fn, resolve, reject);
+}
+
+let promiseObject = Promise(function() {
+    console.log(1);
+    return 2;
+});
+promiseObject
+  .then(function(value) {
+      console.log(value);
+  })
