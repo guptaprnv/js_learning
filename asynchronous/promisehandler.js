@@ -1,20 +1,13 @@
 
-async function handlePromise(...promises) {
-  let response = [];
-  let error = [];
-  for (let ind in promises) {
-    let promise=promises[ind];
-    await promise
-    .then((value) => {
-        response.push(value);
-        error.push(undefined);
-    })
-    .catch((value) => {
-        error.push(value);
-        response.push(undefined);
-    })
-  }
-  return [response, error];
+function handlePromise(promise) {
+  return 
+  promise
+  .then(value => {
+      return value;
+  })
+  .catch(value => {
+      return value;
+  })
 }
 
 async function makehandler() {
@@ -28,11 +21,7 @@ async function makehandler() {
             reject('error 404');
         },6000)
     });
-    
-    console.log(1);
-    //promise1 = await promise1;
-    //promise2 = await promise2;
-    const result = await handlePromise(promise1,promise2);
+    handlePromise(Promise.all([promise1,promise2]));
     
     for(let indresult = 0; indresult < result[0].length; indresult++){
         if(result[0][indresult] !== undefined) {
